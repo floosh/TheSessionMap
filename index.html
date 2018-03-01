@@ -1,57 +1,122 @@
 <!DOCTYPE html>
 <html>
+
 <head>
-  <meta http-equiv="content-type" content="text/html; charset=utf-8"> 
-  <title>Sessions Map</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.3.1/dist/leaflet.css"
-     integrity="sha512-Rksm5RenBEKSKFjgI3a41vrjkw4EVPlJ3+OiI65vTjIdo9brlAacEuKOiQ5OFh7cOI1bkDwLqdLw3Zg0cRJAAQ=="
-     crossorigin=""/>
-  <script src="https://unpkg.com/leaflet@1.3.1/dist/leaflet.js"
-     integrity="sha512-/Nsx9X4HebavoBvEBuyp3I7od5tA0UzAxs+j83KgC8PU0kgB4XiK4Lfe4y4cgBtaRJQEIFCW+oC506aPT2L1zw=="
-     crossorigin=""></script>
-<link rel="stylesheet" type="text/css" href="https://unpkg.com/leaflet.markercluster@1.3.0/dist//MarkerCluster.css" /> <!-- Use to group Marker -->
-<link rel="stylesheet" type="text/css" href="https://unpkg.com/leaflet.markercluster@1.3.0/dist//MarkerCluster.Default.css" /><!-- Use to group Marker -->
-<script type='text/javascript' src='https://unpkg.com/leaflet.markercluster@1.3.0/dist/leaflet.markercluster.js'></script><!-- Use to group Marker -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/4.3.7/papaparse.min.js"></script>
-   <style type="text/css">
-        html, body {
-            height: 100%;
-            margin: 0;
-        }
-      </style>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8">
+    <title>Sessions Map</title>
+    <link rel="stylesheet" href="css/side-menu.css" />
+    <link rel="stylesheet" href="css/style.css" />
+    <link rel="stylesheet" href="css/leaflet.css" />
+    <link rel="stylesheet" type="text/css" href="css/MarkerCluster.css" />
+    <link rel="stylesheet" type="text/css" href="css/MarkerCluster.Default.css" />
+    <script src="lib/leaflet.js"></script>
+    <script type='text/javascript' src='lib/leaflet.markercluster.js'></script>
+    <script src="lib/papaparse.min.js"></script>
 </head>
+
 <body>
-  <div id="mapid" style="min-height: 100%;"></div>
-  <script>
-    var mymap = L.map('mapid').setView([51.505, -0.09], 13);
-    L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token=pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw', {
-    maxZoom: 18,
-    attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, ' +
-      '<a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, ' +
-      'Imagery © <a href="http://mapbox.com">Mapbox</a>',
-    id: 'mapbox.streets'
-  }).addTo(mymap);
+    <div id="layout">
+        <a href="#menu" id="menuLink" class="menu-link">
+            <span>
+            </span>
+        </a>
+        <div id="menu">
+            <div class="logo">
+                <div class="ribbon">
+                    The Session Map
+                </div>
+            </div>
+            <span>Display :</span>
+            <a class="menu-item" id="menuAll">All </a>
+            <a class="menu-item" id="menuSessions">Sessions </a>
+            <a class="menu-item" id="menuEvents">Events </a>
+        </div>
+        <div id="main">
+            <div id="map"></div>
+        </div>
+    </div>
+    <script>
 
-  Papa.parse("https://raw.githubusercontent.com/adactio/TheSession-data/master/csv/sessions.csv", {
-    download: true,
-    header: true,
-    dynamicTyping: true,
-    skipEmptyLines: true,
-    complete: function(results) {
-      var marker_cluster = L.markerClusterGroup();
-      results.data.filter(h=>/-?\d+\.\d+/.test(h.longitude)).forEach(function(row) {
-        var marker = L.marker([row.latitude, row.longitude]);
-        marker.bindPopup(row.name);
-        marker_cluster.addLayer( marker );//will add each marker into markerCluster
+    // init map
+    var mymap = L.map('map', { zoomControl: false }).setView([30, 0], 3);
+    L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token=pk.eyJ1IjoiZmxvb3NoIiwiYSI6ImNqZTc0NmY0ODA3Z2wyeG16cTFjdGlpY2wifQ.3AdJa_vcvqFPxqVako00ZA', {
+        maxZoom: 18,
+        attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, ' +
+            '<a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, ' +
+            'Imagery © <a href="http://mapbox.com">Mapbox</a>',
+        id: 'mapbox.streets'
+    }).addTo(mymap);
+    L.control.zoom({ position: 'bottomright' }).addTo(mymap);
 
-      })
-      mymap.addLayer( marker_cluster );
-      console.dir(results);
+    var marker_cluster = L.markerClusterGroup();
+    mymap.addLayer(marker_cluster);
+
+    Papa.parsePromise = function(url) {
+        return new Promise(function(resolve) {
+            Papa.parse(url, {
+                download: true,
+                header: true,
+                dynamicTyping: true,
+                skipEmptyLines: true,
+                complete: (results) => resolve(results.data)
+            })
+        })
     }
-  })
 
-  </script>
+    function templateSession(s) {
+        return "<b><a href='https://thesession.org/sessions/" + s.id + "' target='_blank'>" + s.name + "</a></b><br/>" + s.address + ", " + s.town + ", " + s.area + ", " + s.country;
+    }
+
+    function templateEvent(s) {
+        return "<b><a href='https://thesession.org/sessions/" + s.id + "' target='_blank'>" + s.event + "</a></b><br/>" + s.address + ", " + s.town + ", " + s.area + ", " + s.country;
+    }
+
+    function displayMarkers(data) {
+        marker_cluster.clearLayers();
+        data.filter(h => /-?\d+\.\d+/.test(h.longitude)).forEach(function(row) {
+            var marker = L.marker([row.latitude, row.longitude]);
+            marker.bindPopup(row.template(row));
+            marker_cluster.addLayer(marker);
+        });
+    }
+
+    var dumpurl = "https://raw.githubusercontent.com/adactio/TheSession-data/master/csv/";
+    var csvs = ["sessions.csv", "events.csv"];
+
+    Promise.all(csvs.map(function(csv) {
+        return Papa.parsePromise(dumpurl + csv);
+    })).then(function(datas) {
+
+        datas[0].map(h => h.template = templateSession);
+        datas[1].map(h => h.template = templateEvent);
+
+        var menus = {
+            'menuAll': datas[0].concat(datas[1]),
+            'menuSessions': datas[0],
+            'menuEvents': datas[1]
+        };
+
+        Object.keys(menus).map(function(k, i) {
+            var elem = document.getElementById(k);
+            elem.addEventListener("click", function() {
+                // Set menu element selected
+                document.querySelectorAll(".menu-item-selected").forEach(function(e) {
+                    e.classList.remove("menu-item-selected");
+                });
+                elem.classList.add('menu-item-selected');
+                // Show new markers
+                displayMarkers(menus[k]);
+
+            }, false);
+            elem.innerHTML += " (" + menus[k].length + ")";
+        });
+
+        displayMarkers(menus.menuAll);
+        document.getElementById('menuAll').classList.add('menu-item-selected');
+
+    });
+    </script>
+    <script src="lib/ui.js"></script>
 </body>
-</html>
 
-    
+</html>
