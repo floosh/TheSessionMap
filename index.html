@@ -47,8 +47,7 @@
     }).addTo(mymap);
     L.control.zoom({ position: 'bottomright' }).addTo(mymap);
 
-    var marker_cluster = L.markerClusterGroup();
-    mymap.addLayer(marker_cluster);
+    var marker_cluster = L.markerClusterGroup({maxClusterRadius:50});
 
     function getJson(url) {
         return new Promise((resolve, reject) => {
@@ -62,7 +61,7 @@
     }
 
     function dateFormat(date) {
-      return moment(date).format("MMMM Do YYYY, hh:mm");
+        return moment(date).format("MMMM Do YYYY, hh:mm");
     }
 
     function templateSession(s) {
@@ -74,12 +73,14 @@
     }
 
     function displayMarkers(data) {
+        mymap.removeLayer(marker_cluster);
         marker_cluster.clearLayers();
         data.filter(h => /-?\d+\.\d+/.test(h.longitude)).forEach(function(row) {
             var marker = L.marker([row.latitude, row.longitude]);
             marker.bindPopup(row.template(row));
             marker_cluster.addLayer(marker);
         });
+        mymap.addLayer(marker_cluster);
     }
 
     var dumpurl = "https://raw.githubusercontent.com/adactio/TheSession-data/master/json/";
@@ -91,7 +92,7 @@
 
         //Remove past events
         datas[1] = datas[1].filter(function(e) {
-          return moment(e.dtend) > moment();
+            return moment(e.dtend) > moment();
         });
 
         datas[0].map(h => h.template = templateSession);
