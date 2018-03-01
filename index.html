@@ -10,8 +10,8 @@
     <link rel="stylesheet" type="text/css" href="css/MarkerCluster.css" />
     <link rel="stylesheet" type="text/css" href="css/MarkerCluster.Default.css" />
     <script src="lib/leaflet.js"></script>
+    <script src="lib/moment.min.js"></script>
     <script type='text/javascript' src='lib/leaflet.markercluster.js'></script>
-    <script src="lib/papaparse.min.js"></script>
 </head>
 
 <body>
@@ -36,7 +36,6 @@
         </div>
     </div>
     <script>
-
     // init map
     var mymap = L.map('map', { zoomControl: false }).setView([30, 0], 3);
     L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token=pk.eyJ1IjoiZmxvb3NoIiwiYSI6ImNqZTc0NmY0ODA3Z2wyeG16cTFjdGlpY2wifQ.3AdJa_vcvqFPxqVako00ZA', {
@@ -51,16 +50,19 @@
     var marker_cluster = L.markerClusterGroup();
     mymap.addLayer(marker_cluster);
 
-    Papa.parsePromise = function(url) {
-        return new Promise(function(resolve) {
-            Papa.parse(url, {
-                download: true,
-                header: true,
-                dynamicTyping: true,
-                skipEmptyLines: true,
-                complete: (results) => resolve(results.data)
-            })
-        })
+    function getJson(url) {
+        return new Promise((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+            xhr.overrideMimeType("application/json");
+            xhr.open("GET", url);
+            xhr.onload = () => resolve(JSON.parse(xhr.responseText));
+            xhr.onerror = () => reject(xhr.statusText);
+            xhr.send();
+        });
+    }
+
+    function dateFormat(date) {
+      return moment(date).format("MMMM Do YYYY, hh:mm");
     }
 
     function templateSession(s) {
@@ -68,7 +70,7 @@
     }
 
     function templateEvent(s) {
-        return "<b><a href='https://thesession.org/sessions/" + s.id + "' target='_blank'>" + s.event + "</a></b><br/>" + s.address + ", " + s.town + ", " + s.area + ", " + s.country;
+        return "<b><a href='https://thesession.org/events/" + s.id + "' target='_blank'>" + s.event + "</a></b><br/>" + s.address + ", " + s.town + ", " + s.area + ", " + s.country + '<br/>Begin: ' + dateFormat(s.dtstart) + '<br/>End: ' + dateFormat(s.dtend);
     }
 
     function displayMarkers(data) {
@@ -80,12 +82,17 @@
         });
     }
 
-    var dumpurl = "https://raw.githubusercontent.com/adactio/TheSession-data/master/csv/";
-    var csvs = ["sessions.csv", "events.csv"];
+    var dumpurl = "https://raw.githubusercontent.com/adactio/TheSession-data/master/json/";
+    var csvs = ["sessions.json", "events.json"];
 
     Promise.all(csvs.map(function(csv) {
-        return Papa.parsePromise(dumpurl + csv);
+        return getJson(dumpurl + csv);
     })).then(function(datas) {
+
+        //Remove past events
+        datas[1] = datas[1].filter(function(e) {
+          return moment(e.dtend) > moment();
+        });
 
         datas[0].map(h => h.template = templateSession);
         datas[1].map(h => h.template = templateEvent);
