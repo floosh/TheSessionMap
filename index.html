@@ -30,6 +30,8 @@
             <a class="menu-item" id="menuAll">All </a>
             <a class="menu-item" id="menuSessions">Sessions </a>
             <a class="menu-item" id="menuEvents">Events </a>
+            <i><span id="lastUpdate"></span></i>
+            <a id="githubLink" href="https://github.com/floosh/TheSessionMap">Github</a>
         </div>
         <div id="main">
             <div id="map"></div>
@@ -123,6 +125,13 @@
         document.getElementById('menuAll').classList.add('menu-item-selected');
 
     });
+
+    getJson("https://api.github.com/repos/adactio/TheSession-data/git/refs/heads/master").then(function(ref) {
+        return getJson("https://api.github.com/repos/adactio/TheSession-data/git/commits/" + ref.object.sha);
+    }).then(function(commit) {
+        document.getElementById('lastUpdate').innerHTML = "Last updated " + moment(commit.author.date).fromNow()
+    })
+
     </script>
     <script src="lib/ui.js"></script>
 </body>

@@ -6,6 +6,7 @@
      height: 100%;
      margin: 0;
      font-family: sans-serif;
+     color: #444;
  }
 
  .logo {
@@ -46,4 +47,10 @@
      padding: 10px;
      margin-top: 10px;
      display: block;
+}
+
+#githubLink {
+     position: absolute;
+     bottom: 0;
+     left: 0;
 }
