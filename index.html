@@ -67,7 +67,7 @@
     }
 
     function templateSession(s) {
-        return "<b><a href='https://thesession.org/sessions/" + s.id + "' target='_blank'>" + s.name + "</a></b><br/>" + s.address + ", " + s.town + ", " + s.area + ", " + s.country;
+        return "<b><a href='https://thesession.org/sessions/" + s.id + "' target='_blank'>" + s.name + "</a></b><br/>" + s.address + ", " + s.town + ", " + s.area + ", " + s.country + '</br><b>Schedule: </b>' + (s.schedule ? s.schedule.join(", ") : '');
     }
 
     function templateEvent(s) {
@@ -80,6 +80,17 @@
         data.filter(h => /-?\d+\.\d+/.test(h.longitude)).forEach(function(row) {
             var marker = L.marker([row.latitude, row.longitude]);
             marker.bindPopup(row.template(row));
+            marker.on('click', function(e) {
+                // add schedule
+                if(!row.schedule) {
+                    var popup = e.target.getPopup();
+                    getJson('https://thesession.org/sessions/' + row.id + '?format=json').then(function(s) {
+                        row.schedule = s.schedule;
+                        popup.setContent(row.template(row));
+                    });
+                }
+            });
+
             marker_cluster.addLayer(marker);
         });
         mymap.addLayer(marker_cluster);
